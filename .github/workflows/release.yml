@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            suffix: ""
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            suffix: ""
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            suffix: ""
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            suffix: ".exe"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build CLI
+        run: cargo build --release --target ${{ matrix.target }} -p yaps-cli
+
+      - name: Build GUI
+        # GUI requires windowing system libs; skip on Linux (no display server in CI)
+        if: matrix.os != 'ubuntu-latest'
+        run: cargo build --release --target ${{ matrix.target }} -p yaps-gui
+
+      - name: Package (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          base="yaps-rs-${tag}-${{ matrix.target }}"
+          mkdir -p "${base}"
+          cp "target/${{ matrix.target }}/release/yaps" "${base}/"
+          if [ -f "target/${{ matrix.target }}/release/yaps-gui" ]; then
+            cp "target/${{ matrix.target }}/release/yaps-gui" "${base}/"
+          fi
+          cp LICENSE README.md "${base}/"
+          tar czf "${base}.tar.gz" "${base}"
+          echo "ASSET=${base}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $base = "yaps-rs-${tag}-${{ matrix.target }}"
+          New-Item -ItemType Directory -Path $base | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/yaps.exe" $base
+          if (Test-Path "target/${{ matrix.target }}/release/yaps-gui.exe") {
+            Copy-Item "target/${{ matrix.target }}/release/yaps-gui.exe" $base
+          }
+          Copy-Item LICENSE, README.md $base
+          Compress-Archive -Path $base -DestinationPath "${base}.zip"
+          echo "ASSET=${base}.zip" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: ${{ env.ASSET }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/**/*
