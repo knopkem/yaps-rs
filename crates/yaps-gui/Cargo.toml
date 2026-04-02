@@ -1,0 +1,21 @@
+[package]
+name = "yaps-gui"
+description = "GUI binary for YAPS-RS photo sorter (iced)"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "yaps-gui"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+yaps-core = { path = "../yaps-core" }
+iced = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
