@@ -41,25 +41,22 @@ impl Organizer {
     ///
     /// # Errors
     /// Returns errors for invalid configuration, I/O failures, etc.
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn run(config: &Config, progress: Option<ProgressCallback>) -> crate::Result<Report> {
+    pub fn run(config: &Config, progress: Option<&ProgressCallback>) -> crate::Result<Report> {
         let start = Instant::now();
         let mut report = Report::new();
 
         let folder_pattern = parse_pattern(&config.folder_pattern)?;
         let file_pattern = parse_pattern(&config.file_pattern)?;
 
-        let progress_ref = progress.as_ref();
-
-        let files = Self::scan_files(config, progress_ref, &mut report)?;
+        let files = Self::scan_files(config, progress, &mut report)?;
         if files.is_empty() {
             report.elapsed = start.elapsed();
             return Ok(report);
         }
 
-        let metadata = Self::extract_metadata(&files, progress_ref, report.files_total);
+        let metadata = Self::extract_metadata(&files, progress, report.files_total);
         Self::count_exif_stats(&metadata, &mut report);
-        Self::organize_files(config, &metadata, &folder_pattern, &file_pattern, progress_ref, &mut report)?;
+        Self::organize_files(config, &metadata, &folder_pattern, &file_pattern, progress, &mut report)?;
 
         report.elapsed = start.elapsed();
         Ok(report)

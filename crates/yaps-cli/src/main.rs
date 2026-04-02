@@ -12,6 +12,7 @@ use yaps_core::ops::Organizer;
 /// Organize your photos into structured directories based on EXIF metadata.
 #[derive(Parser, Debug)]
 #[command(name = "yaps", version, about, long_about = None)]
+#[allow(clippy::struct_excessive_bools)]
 struct Cli {
     /// Source directory containing photos to organize.
     #[arg(short, long)]
@@ -145,15 +146,16 @@ fn main() -> Result<()> {
     println!();
 
     // Create a simple progress callback
-    let progress = Box::new(|current: usize, total: usize, msg: &str| {
-        if total > 0 {
-            eprint!("\r  {msg} [{current}/{total}]");
-        } else {
-            eprint!("\r  {msg}");
-        }
-    });
+    let progress: yaps_core::ops::organizer::ProgressCallback =
+        Box::new(|current: usize, total: usize, msg: &str| {
+            if total > 0 {
+                eprint!("\r  {msg} [{current}/{total}]");
+            } else {
+                eprint!("\r  {msg}");
+            }
+        });
 
-    let report = Organizer::run(&config, Some(progress))
+    let report = Organizer::run(&config, Some(&progress))
         .context("Photo sorting operation failed")?;
 
     // Clear progress line
