@@ -29,6 +29,105 @@ impl ParsedPattern {
     }
 }
 
+/// A validation error in a pattern string with position information.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PatternError {
+    /// Human-readable error message.
+    pub message: String,
+    /// Byte offset of the start of the problematic region.
+    pub start: usize,
+    /// Byte offset past the end of the problematic region.
+    pub end: usize,
+}
+
+impl std::fmt::Display for PatternError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} (at {}..{})", self.message, self.start, self.end)
+    }
+}
+
+/// Validate a pattern string and return all errors with their positions.
+///
+/// Unlike [`parse_pattern`], this function does not stop at the first error
+/// but collects all problems so they can be highlighted in a UI.
+///
+/// Returns an empty `Vec` if the pattern is valid.
+pub fn validate_pattern(input: &str) -> Vec<PatternError> {
+    let mut errors = Vec::new();
+    let bytes = input.as_bytes();
+    let len = bytes.len();
+    let mut i = 0;
+
+    while i < len {
+        if bytes[i] == b'{' {
+            let open_pos = i;
+            i += 1;
+
+            // Escaped brace `{{`
+            if i < len && bytes[i] == b'{' {
+                i += 1;
+                continue;
+            }
+
+            // Find closing brace
+            let tag_start = i;
+            let mut closed = false;
+            while i < len {
+                if bytes[i] == b'}' {
+                    closed = true;
+                    break;
+                }
+                i += 1;
+            }
+
+            if !closed {
+                errors.push(PatternError {
+                    message: "unclosed tag — missing '}'".to_string(),
+                    start: open_pos,
+                    end: len,
+                });
+                break;
+            }
+
+            let tag_name = &input[tag_start..i];
+            let tag_name_trimmed = tag_name.trim();
+            let close_pos = i + 1; // past the '}'
+            i = close_pos;
+
+            if tag_name_trimmed.is_empty() {
+                errors.push(PatternError {
+                    message: "empty tag name".to_string(),
+                    start: open_pos,
+                    end: close_pos,
+                });
+            } else if PatternTag::from_name(tag_name_trimmed).is_none() {
+                errors.push(PatternError {
+                    message: format!("unknown tag '{tag_name_trimmed}'"),
+                    start: open_pos,
+                    end: close_pos,
+                });
+            }
+        } else if bytes[i] == b'}' {
+            let pos = i;
+            i += 1;
+            if i < len && bytes[i] == b'}' {
+                // Escaped brace `}}`
+                i += 1;
+            } else {
+                errors.push(PatternError {
+                    message: "unexpected '}' without matching '{'".to_string(),
+                    start: pos,
+                    end: i,
+                });
+            }
+        } else {
+            i += 1;
+        }
+    }
+
+    errors
+}
+
 /// Parse a pattern string into a `ParsedPattern`.
 ///
 /// Tags are delimited by `{` and `}`. Everything else is literal text.
@@ -242,5 +341,80 @@ mod tests {
             let p = parse_pattern(&input).unwrap();
             assert_eq!(p.segments, vec![PatternSegment::Tag(*tag)]);
         }
+    }
+
+    // -- validate_pattern tests --
+
+    #[test]
+    fn test_validate_valid_pattern() {
+        assert!(validate_pattern("{year}/{month}").is_empty());
+        assert!(validate_pattern("{year}/{month}-{month_long}").is_empty());
+        assert!(validate_pattern("literal_only").is_empty());
+        assert!(validate_pattern("").is_empty());
+        assert!(validate_pattern("{{escaped}}").is_empty());
+    }
+
+    #[test]
+    fn test_validate_unknown_tag() {
+        let errs = validate_pattern("{foobar}");
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].start, 0);
+        assert_eq!(errs[0].end, 8);
+        assert!(errs[0].message.contains("unknown tag"));
+        assert!(errs[0].message.contains("foobar"));
+    }
+
+    #[test]
+    fn test_validate_unclosed_tag() {
+        let errs = validate_pattern("{year");
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].start, 0);
+        assert!(errs[0].message.contains("unclosed"));
+    }
+
+    #[test]
+    fn test_validate_empty_tag() {
+        let errs = validate_pattern("{}");
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].start, 0);
+        assert_eq!(errs[0].end, 2);
+        assert!(errs[0].message.contains("empty"));
+    }
+
+    #[test]
+    fn test_validate_unmatched_close_brace() {
+        let errs = validate_pattern("hello}world");
+        assert_eq!(errs.len(), 1);
+        assert_eq!(errs[0].start, 5);
+        assert_eq!(errs[0].end, 6);
+    }
+
+    #[test]
+    fn test_validate_multiple_errors() {
+        let errs = validate_pattern("{bad1}/{bad2}");
+        assert_eq!(errs.len(), 2);
+        assert_eq!(errs[0].start, 0);
+        assert_eq!(errs[0].end, 6);
+        assert_eq!(errs[1].start, 7);
+        assert_eq!(errs[1].end, 13);
+    }
+
+    #[test]
+    fn test_validate_mix_valid_and_invalid() {
+        let errs = validate_pattern("{year}/{bogus}/{month}");
+        assert_eq!(errs.len(), 1);
+        assert!(errs[0].message.contains("bogus"));
+        assert_eq!(errs[0].start, 7);
+        assert_eq!(errs[0].end, 14);
+    }
+
+    #[test]
+    fn test_validate_pattern_error_display() {
+        let err = PatternError {
+            message: "unknown tag 'foo'".to_string(),
+            start: 5,
+            end: 10,
+        };
+        assert_eq!(err.to_string(), "unknown tag 'foo' (at 5..10)");
     }
 }

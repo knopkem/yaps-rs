@@ -6,12 +6,13 @@ use iced::widget::{
     button, checkbox, column, container, horizontal_rule, pick_list, progress_bar, row,
     scrollable, text, text_input, Column,
 };
-use iced::{Center, Element, Fill, Task};
+use iced::{color, Center, Element, Fill, Task};
 
 use crate::messages::{
     ConflictChoice, DuplicateChoice, FolderTarget, Message, OperationChoice, ReportData,
     SortingResult,
 };
+use crate::settings::Settings;
 
 /// Application state.
 pub struct App {
@@ -22,6 +23,10 @@ pub struct App {
     // Patterns
     folder_pattern: String,
     file_pattern: String,
+
+    // Pattern validation
+    folder_errors: Vec<yaps_core::pattern::PatternError>,
+    file_errors: Vec<yaps_core::pattern::PatternError>,
 
     // Options
     operation: OperationChoice,
@@ -37,17 +42,23 @@ pub struct App {
 
 impl Default for App {
     fn default() -> Self {
+        let settings = Settings::load();
+        let folder_errors = yaps_core::pattern::validate_pattern(&settings.folder_pattern);
+        let file_errors = yaps_core::pattern::validate_pattern(&settings.file_pattern);
+
         Self {
-            source: String::new(),
-            target: String::new(),
-            folder_pattern: "{year}/{month}-{month_long}".to_string(),
-            file_pattern: "{day}-{month_short}-{hour}{minute}{second}-{filename}".to_string(),
-            operation: OperationChoice::default(),
-            conflict: ConflictChoice::default(),
-            duplicate: DuplicateChoice::default(),
-            recursive: true,
-            dry_run: false,
-            detect_duplicates: true,
+            source: settings.source,
+            target: settings.target,
+            folder_pattern: settings.folder_pattern,
+            file_pattern: settings.file_pattern,
+            folder_errors,
+            file_errors,
+            operation: settings.operation,
+            conflict: settings.conflict,
+            duplicate: settings.duplicate,
+            recursive: settings.recursive,
+            dry_run: settings.dry_run,
+            detect_duplicates: settings.detect_duplicates,
             phase: Phase::default(),
         }
     }
@@ -62,10 +73,32 @@ enum Phase {
     Error(String),
 }
 
+fn save_settings(app: &App) {
+    let settings = Settings {
+        source: app.source.clone(),
+        target: app.target.clone(),
+        folder_pattern: app.folder_pattern.clone(),
+        file_pattern: app.file_pattern.clone(),
+        operation: app.operation,
+        conflict: app.conflict,
+        duplicate: app.duplicate,
+        recursive: app.recursive,
+        dry_run: app.dry_run,
+        detect_duplicates: app.detect_duplicates,
+    };
+    settings.save();
+}
+
 fn update(app: &mut App, message: Message) -> Task<Message> {
     match message {
-        Message::SourceChanged(s) => app.source = s,
-        Message::TargetChanged(s) => app.target = s,
+        Message::SourceChanged(s) => {
+            app.source = s;
+            save_settings(app);
+        }
+        Message::TargetChanged(s) => {
+            app.target = s;
+            save_settings(app);
+        }
         Message::BrowseSource => return open_folder_dialog(FolderTarget::Source),
         Message::BrowseTarget => return open_folder_dialog(FolderTarget::Target),
         Message::FolderSelected(target, path) => {
@@ -75,18 +108,45 @@ fn update(app: &mut App, message: Message) -> Task<Message> {
                     FolderTarget::Source => app.source = s,
                     FolderTarget::Target => app.target = s,
                 }
+                save_settings(app);
             }
         }
 
-        Message::FolderPatternChanged(s) => app.folder_pattern = s,
-        Message::FilePatternChanged(s) => app.file_pattern = s,
+        Message::FolderPatternChanged(s) => {
+            app.folder_errors = yaps_core::pattern::validate_pattern(&s);
+            app.folder_pattern = s;
+            save_settings(app);
+        }
+        Message::FilePatternChanged(s) => {
+            app.file_errors = yaps_core::pattern::validate_pattern(&s);
+            app.file_pattern = s;
+            save_settings(app);
+        }
 
-        Message::OperationSelected(op) => app.operation = op,
-        Message::ConflictSelected(c) => app.conflict = c,
-        Message::DuplicateSelected(d) => app.duplicate = d,
-        Message::ToggleRecursive(v) => app.recursive = v,
-        Message::ToggleDryRun(v) => app.dry_run = v,
-        Message::ToggleDedup(v) => app.detect_duplicates = v,
+        Message::OperationSelected(op) => {
+            app.operation = op;
+            save_settings(app);
+        }
+        Message::ConflictSelected(c) => {
+            app.conflict = c;
+            save_settings(app);
+        }
+        Message::DuplicateSelected(d) => {
+            app.duplicate = d;
+            save_settings(app);
+        }
+        Message::ToggleRecursive(v) => {
+            app.recursive = v;
+            save_settings(app);
+        }
+        Message::ToggleDryRun(v) => {
+            app.dry_run = v;
+            save_settings(app);
+        }
+        Message::ToggleDedup(v) => {
+            app.detect_duplicates = v;
+            save_settings(app);
+        }
 
         Message::StartSorting => {
             app.phase = Phase::Running;
@@ -138,7 +198,8 @@ fn view_setup(app: &App) -> Element<'_, Message> {
     let patterns = view_patterns(app);
     let options = view_options(app);
 
-    let can_start = !app.source.is_empty() && !app.target.is_empty();
+    let has_errors = !app.folder_errors.is_empty() || !app.file_errors.is_empty();
+    let can_start = !app.source.is_empty() && !app.target.is_empty() && !has_errors;
     let start_btn = if can_start {
         button(text("Start Sorting").size(16))
             .on_press(Message::StartSorting)
@@ -167,15 +228,45 @@ fn view_setup(app: &App) -> Element<'_, Message> {
     .into()
 }
 
+fn format_error_message(errors: &[yaps_core::pattern::PatternError], pattern: &str) -> String {
+    if errors.is_empty() {
+        return String::new();
+    }
+
+    errors
+        .iter()
+        .map(|e| {
+            let snippet = &pattern[e.start..e.end.min(pattern.len())];
+            format!("'{}': {}", snippet, e.message)
+        })
+        .collect::<Vec<_>>()
+        .join("; ")
+}
+
 fn view_patterns(app: &App) -> Element<'_, Message> {
     let folder_pat = row![
         text("Folder pattern:").width(100),
-        text_input("{year}/{month}-{month_long}", &app.folder_pattern)
+        text_input("{year}/{month}", &app.folder_pattern)
             .on_input(Message::FolderPatternChanged)
             .width(Fill),
     ]
     .spacing(8)
     .align_y(Center);
+
+    let mut pattern_col: Vec<Element<'_, Message>> = vec![
+        text("Patterns").size(18).into(),
+        folder_pat.into(),
+    ];
+
+    if !app.folder_errors.is_empty() {
+        let msg = format_error_message(&app.folder_errors, &app.folder_pattern);
+        pattern_col.push(
+            text(format!("⚠ {msg}"))
+                .size(12)
+                .color(color!(0xFF_4444))
+                .into(),
+        );
+    }
 
     let file_pat = row![
         text("File pattern:").width(100),
@@ -189,6 +280,18 @@ fn view_patterns(app: &App) -> Element<'_, Message> {
     .spacing(8)
     .align_y(Center);
 
+    pattern_col.push(file_pat.into());
+
+    if !app.file_errors.is_empty() {
+        let msg = format_error_message(&app.file_errors, &app.file_pattern);
+        pattern_col.push(
+            text(format!("⚠ {msg}"))
+                .size(12)
+                .color(color!(0xFF_4444))
+                .into(),
+        );
+    }
+
     let hint = text(
         "Tags: {year} {month} {month_short} {month_long} {day} {day_short} {day_long} \
          {hour} {minute} {second} {week} {make} {model} {lens} {iso} {aperture} \
@@ -197,9 +300,9 @@ fn view_patterns(app: &App) -> Element<'_, Message> {
     )
     .size(12);
 
-    column![text("Patterns").size(18), folder_pat, file_pat, hint,]
-        .spacing(8)
-        .into()
+    pattern_col.push(hint.into());
+
+    Column::with_children(pattern_col).spacing(8).into()
 }
 
 fn view_options(app: &App) -> Element<'_, Message> {

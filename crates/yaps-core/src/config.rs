@@ -85,7 +85,7 @@ impl Default for Config {
             conflict_strategy: ConflictStrategy::default(),
             detect_duplicates: true,
             duplicate_strategy: DuplicateStrategy::default(),
-            folder_pattern: "{year}/{month}-{month_long}".to_string(),
+            folder_pattern: "{year}/{month}".to_string(),
             file_pattern: "{day}-{month_short}-{hour}{minute}{second}-{filename}".to_string(),
             dry_run: false,
             no_exif_folder: "[NoExifData]".to_string(),
@@ -125,7 +125,7 @@ mod tests {
         assert_eq!(config.file_operation, FileOperation::Copy);
         assert_eq!(config.conflict_strategy, ConflictStrategy::Skip);
         assert_eq!(config.duplicate_strategy, DuplicateStrategy::Skip);
-        assert_eq!(config.folder_pattern, "{year}/{month}-{month_long}");
+        assert_eq!(config.folder_pattern, "{year}/{month}");
         assert_eq!(config.no_exif_folder, "[NoExifData]");
         assert_eq!(config.duplicates_folder, "[Duplicates]");
     }

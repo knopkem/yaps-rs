@@ -77,7 +77,8 @@ impl From<&yaps_core::Report> for ReportData {
 }
 
 /// File operation choices for the dropdown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum OperationChoice {
     #[default]
     Copy,
@@ -111,7 +112,8 @@ impl OperationChoice {
 }
 
 /// Conflict strategy choices for the dropdown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum ConflictChoice {
     #[default]
     Skip,
@@ -142,7 +144,8 @@ impl ConflictChoice {
 }
 
 /// Duplicate strategy choices for the dropdown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum DuplicateChoice {
     #[default]
     Skip,

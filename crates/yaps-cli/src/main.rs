@@ -23,7 +23,7 @@ struct Cli {
     target: PathBuf,
 
     /// Folder pattern using {tag} placeholders.
-    #[arg(long, default_value = "{year}/{month}-{month_long}")]
+    #[arg(long, default_value = "{year}/{month}")]
     folder_pattern: String,
 
     /// Filename pattern using {tag} placeholders.

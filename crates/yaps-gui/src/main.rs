@@ -2,6 +2,7 @@
 
 mod app;
 mod messages;
+mod settings;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt()

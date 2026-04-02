@@ -8,5 +8,5 @@ pub mod parser;
 pub mod tags;
 
 pub use formatter::format_pattern;
-pub use parser::parse_pattern;
+pub use parser::{parse_pattern, validate_pattern, PatternError};
 pub use tags::PatternTag;

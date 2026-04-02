@@ -46,7 +46,7 @@ Sort photos by year and month, with day-stamped filenames:
 yaps \
   --source ~/Photos/Unsorted \
   --target ~/Photos/Sorted \
-  --folder-pattern "{year}/{month}-{month_long}" \
+  --folder-pattern "{year}/{month}" \
   --file-pattern "{day}-{month_short}-{hour}{minute}{second}-{filename}"
 ```
 
@@ -141,7 +141,7 @@ USAGE:
 OPTIONS:
     -s, --source <PATH>            Source directory containing photos to organize
     -t, --target <PATH>            Target directory for organized output
-        --folder-pattern <PATTERN> Folder structure pattern [default: {year}/{month}-{month_long}]
+        --folder-pattern <PATTERN> Folder structure pattern [default: {year}/{month}]
         --file-pattern <PATTERN>   Filename pattern [default: {day}-{month_short}-{hour}{minute}{second}-{filename}]
         --operation <MODE>         File operation: copy, move, hardlink, symlink [default: copy]
         --on-conflict <STRATEGY>   Conflict resolution: skip, rename, overwrite [default: skip]
@@ -167,7 +167,7 @@ file_operation = "copy"
 conflict_strategy = "rename"
 detect_duplicates = true
 duplicate_strategy = "skip"
-folder_pattern = "{year}/{month}-{month_long}"
+folder_pattern = "{year}/{month}"
 file_pattern = "{day}-{month_short}-{hour}{minute}{second}-{filename}"
 dry_run = false
 no_exif_folder = "[NoExifData]"
