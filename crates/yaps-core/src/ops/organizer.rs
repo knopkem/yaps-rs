@@ -348,7 +348,7 @@ mod tests {
         // In dry run, no files should actually be created
         let target_entries: Vec<_> = std::fs::read_dir(target.path())
             .unwrap()
-            .filter_map(|e| e.ok())
+            .filter_map(std::result::Result::ok)
             .collect();
         assert!(target_entries.is_empty(), "Dry run should not create files");
     }
