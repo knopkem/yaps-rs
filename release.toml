@@ -1,0 +1,21 @@
+# cargo-release configuration
+# Usage: cargo release patch / minor / major
+# Or:    cargo release 0.2.0
+
+# Commit all version bumps in one commit
+consolidate-commits = true
+
+# Push commits and tags together in one push
+push = true
+push-remote = "origin"
+
+# Tag format
+tag = true
+tag-name = "v{{version}}"
+tag-message = "Release v{{version}}"
+
+# Don't publish to crates.io (private project)
+publish = false
+
+# Run these before releasing
+pre-release-replacements = []
