@@ -311,8 +311,11 @@ fn view_error<'a>(msg: &str) -> Element<'a, Message> {
 fn open_folder_dialog(target: FolderTarget) -> Task<Message> {
     Task::perform(
         async move {
-            // No native dialog — user types the path manually
-            None::<PathBuf>
+            let handle = rfd::AsyncFileDialog::new()
+                .set_title("Select folder")
+                .pick_folder()
+                .await;
+            handle.map(|h| h.path().to_path_buf())
         },
         move |path| Message::FolderSelected(target, path),
     )

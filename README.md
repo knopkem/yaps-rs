@@ -22,7 +22,7 @@ Organize photos and videos into clean directory structures based on EXIF metadat
 - **Graceful degradation** — files without EXIF data go to a configurable `[NoExifData]` folder
 - **Dry-run mode** — preview all operations before committing
 - **TOML configuration** — save and reuse sorting presets
-- **CLI and GUI** — terminal interface now, [iced](https://github.com/iced-rs/iced) GUI planned
+- **CLI and GUI** — full-featured terminal interface and [iced](https://github.com/iced-rs/iced) graphical interface
 
 ## Installation
 
@@ -32,7 +32,7 @@ Organize photos and videos into clean directory structures based on EXIF metadat
 # CLI
 cargo install --path crates/yaps-cli
 
-# GUI (not yet implemented)
+# GUI
 cargo install --path crates/yaps-gui
 ```
 
@@ -201,8 +201,8 @@ yaps-rs/
 │   │       ├── ops/           # Scanner, file ops, conflict resolver, organizer
 │   │       ├── pattern/       # Template parser, formatter, tag definitions
 │   │       └── report.rs      # Run statistics
-│   ├── yaps-cli/      # CLI binary (clap + indicatif progress bars)
-│   └── yaps-gui/      # GUI binary (iced — planned)
+│   ├── yaps-cli/      # CLI binary (clap + tracing)
+│   └── yaps-gui/      # GUI binary (iced + rfd file dialogs)
 ├── tests/             # Integration tests
 └── benches/           # Benchmarks
 ```
@@ -235,15 +235,19 @@ The release profile enables LTO and single codegen unit for maximum optimization
 git clone https://github.com/example/yaps-rs.git
 cd yaps-rs
 
-# Debug build
+# Debug build (all crates)
 cargo build
 
-# Optimized release build
+# Optimized release build (all crates)
 cargo build --release
 
+# Build individual binaries
+cargo build --release -p yaps-cli   # CLI only
+cargo build --release -p yaps-gui   # GUI only
+
 # Binaries at:
-#   target/release/yaps
-#   target/release/yaps-gui
+#   target/release/yaps       (CLI)
+#   target/release/yaps-gui   (GUI)
 ```
 
 ## Testing
@@ -260,6 +264,17 @@ cargo clippy -- -D warnings
 
 # Format check
 cargo fmt --check
+```
+
+## Benchmarks
+
+```sh
+# Run all benchmarks
+cargo bench -p yaps-core
+
+# Run specific benchmark suite
+cargo bench -p yaps-core --bench hashing_bench
+cargo bench -p yaps-core --bench scanning_bench
 ```
 
 ## License
