@@ -87,4 +87,29 @@ mod tests {
         assert!(output.contains("Processed:       85"));
         assert!(output.contains("Duplicates:      3"));
     }
+
+    #[test]
+    fn test_report_display_with_log_path() {
+        let report = Report {
+            files_total: 10,
+            log_path: Some(std::path::PathBuf::from("/tmp/yaps.log")),
+            ..Report::default()
+        };
+
+        let output = report.to_string();
+        assert!(output.contains("/tmp/yaps.log"));
+        assert!(output.contains("Log file:"));
+    }
+
+    #[test]
+    fn test_report_clone() {
+        let original = Report {
+            files_total: 42,
+            duplicates: 5,
+            ..Report::default()
+        };
+        let cloned = original.clone();
+        assert_eq!(cloned.files_total, 42);
+        assert_eq!(cloned.duplicates, 5);
+    }
 }

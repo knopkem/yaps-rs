@@ -390,4 +390,99 @@ mod tests {
         let result = Organizer::run(&config, None);
         assert!(result.is_err());
     }
+
+    #[test]
+    fn test_organizer_with_progress_callback() {
+        use std::sync::atomic::{AtomicUsize, Ordering};
+        use std::sync::Arc;
+
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+
+        std::fs::write(source.path().join("photo.jpg"), b"content").unwrap();
+
+        let call_count = Arc::new(AtomicUsize::new(0));
+        let cc = Arc::clone(&call_count);
+        let progress: ProgressCallback = Box::new(move |_current, _total, _msg| {
+            cc.fetch_add(1, Ordering::Relaxed);
+        });
+
+        let config = Config {
+            source: source.path().to_path_buf(),
+            target: target.path().to_path_buf(),
+            detect_duplicates: false,
+            ..Default::default()
+        };
+
+        let report = Organizer::run(&config, Some(&progress)).unwrap();
+        assert_eq!(report.files_total, 1);
+        assert!(call_count.load(Ordering::Relaxed) > 0, "Progress callback should be called");
+    }
+
+    #[test]
+    fn test_organizer_move_removes_source() {
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+
+        let src_file = source.path().join("photo.jpg");
+        std::fs::write(&src_file, b"move me").unwrap();
+
+        let config = Config {
+            source: source.path().to_path_buf(),
+            target: target.path().to_path_buf(),
+            file_operation: FileOperation::Move,
+            detect_duplicates: false,
+            ..Default::default()
+        };
+
+        let report = Organizer::run(&config, None).unwrap();
+        assert_eq!(report.files_processed, 1);
+        assert!(!src_file.exists(), "Source file should be removed after move");
+    }
+
+    #[test]
+    fn test_organizer_multiple_files() {
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+
+        for i in 0..5 {
+            std::fs::write(
+                source.path().join(format!("photo_{i}.jpg")),
+                format!("content {i}").as_bytes(),
+            )
+            .unwrap();
+        }
+
+        let config = Config {
+            source: source.path().to_path_buf(),
+            target: target.path().to_path_buf(),
+            detect_duplicates: false,
+            ..Default::default()
+        };
+
+        let report = Organizer::run(&config, None).unwrap();
+        assert_eq!(report.files_total, 5);
+        assert_eq!(report.files_processed, 5);
+        assert_eq!(report.files_without_exif, 5);
+    }
+
+    #[test]
+    fn test_organizer_custom_no_exif_folder() {
+        let source = tempfile::tempdir().unwrap();
+        let target = tempfile::tempdir().unwrap();
+
+        std::fs::write(source.path().join("photo.png"), b"no exif").unwrap();
+
+        let config = Config {
+            source: source.path().to_path_buf(),
+            target: target.path().to_path_buf(),
+            no_exif_folder: "Unsorted".to_string(),
+            detect_duplicates: false,
+            ..Default::default()
+        };
+
+        let report = Organizer::run(&config, None).unwrap();
+        assert_eq!(report.files_processed, 1);
+        assert!(target.path().join("Unsorted").exists());
+    }
 }

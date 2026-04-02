@@ -4747,8 +4747,17 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "iced",
+ "tokio",
  "tracing",
  "tracing-subscriber",
+ "yaps-core",
+]
+
+[[package]]
+name = "yaps-rs"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
  "yaps-core",
 ]
 

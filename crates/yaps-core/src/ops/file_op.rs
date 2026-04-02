@@ -137,4 +137,39 @@ mod tests {
         assert!(dst.is_symlink());
         assert_eq!(std::fs::read(&dst).unwrap(), b"hello");
     }
+
+    #[test]
+    fn test_copy_preserves_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("binary.bin");
+        let dst = dir.path().join("copy.bin");
+        let content: Vec<u8> = (0..=255).collect();
+        std::fs::write(&src, &content).unwrap();
+
+        execute(&src, &dst, FileOperation::Copy).unwrap();
+        assert_eq!(std::fs::read(&dst).unwrap(), content);
+    }
+
+    #[test]
+    fn test_move_nonexistent_source_errors() {
+        let dir = tempfile::tempdir().unwrap();
+        let result = execute(
+            dir.path().join("ghost.txt"),
+            dir.path().join("dest.txt"),
+            FileOperation::Move,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_deeply_nested_parent_creation() {
+        let dir = tempfile::tempdir().unwrap();
+        let src = dir.path().join("source.txt");
+        let dst = dir.path().join("a/b/c/d/e/f/dest.txt");
+        std::fs::write(&src, b"deep").unwrap();
+
+        execute(&src, &dst, FileOperation::Copy).unwrap();
+        assert!(dst.exists());
+        assert_eq!(std::fs::read(&dst).unwrap(), b"deep");
+    }
 }

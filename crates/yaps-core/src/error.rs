@@ -84,4 +84,52 @@ mod tests {
         assert!(err.to_string().contains("photo.jpg"));
         assert!(err.to_string().contains("no DateTimeOriginal"));
     }
+
+    #[test]
+    fn test_hash_store_error_display() {
+        let err = YapsError::HashStore {
+            path: PathBuf::from("/store"),
+            message: "corrupt header".to_string(),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("/store"));
+        assert!(msg.contains("corrupt header"));
+    }
+
+    #[test]
+    fn test_source_not_found_display() {
+        let err = YapsError::SourceNotFound {
+            path: PathBuf::from("/missing/dir"),
+        };
+        assert!(err.to_string().contains("/missing/dir"));
+    }
+
+    #[test]
+    fn test_target_creation_error_display() {
+        let err = YapsError::TargetCreation {
+            path: PathBuf::from("/readonly/dir"),
+            source: std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied"),
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("/readonly/dir"));
+        assert!(msg.contains("permission denied"));
+    }
+
+    #[test]
+    fn test_file_conflict_display() {
+        let err = YapsError::FileConflict {
+            path: PathBuf::from("/target/photo.jpg"),
+        };
+        assert!(err.to_string().contains("photo.jpg"));
+        assert!(err.to_string().contains("already exists"));
+    }
+
+    #[test]
+    fn test_config_error_display() {
+        let err = YapsError::Config("missing source field".to_string());
+        assert_eq!(
+            err.to_string(),
+            "configuration error: missing source field"
+        );
+    }
 }
