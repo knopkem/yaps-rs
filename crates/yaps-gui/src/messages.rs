@@ -1,6 +1,7 @@
 //! All message types for the iced GUI application.
 
 use std::path::PathBuf;
+use std::sync::{mpsc, Arc, Mutex};
 
 /// Messages that drive the application state machine.
 #[derive(Debug, Clone)]
@@ -26,11 +27,23 @@ pub enum Message {
     // Actions
     StartSorting,
     SortingComplete(SortingResult),
+    ProgressUpdate(ProgressInfo),
     Reset,
 
     // Folder dialog result
     FolderSelected(FolderTarget, Option<PathBuf>),
 }
+
+/// Progress update from the sorting thread.
+#[derive(Debug, Clone)]
+pub struct ProgressInfo {
+    pub current: usize,
+    pub total: usize,
+    pub message: String,
+}
+
+/// Thread-safe receiver wrapped for sharing with the subscription.
+pub type SharedReceiver = Arc<Mutex<mpsc::Receiver<ProgressInfo>>>;
 
 /// Which folder dialog is open.
 #[derive(Debug, Clone, Copy)]

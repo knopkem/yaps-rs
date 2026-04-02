@@ -1,16 +1,17 @@
 //! Main iced application state and logic.
 
 use std::path::PathBuf;
+use std::sync::{mpsc, Arc, Mutex};
 
 use iced::widget::{
     button, checkbox, column, container, horizontal_rule, pick_list, progress_bar, row, scrollable,
     text, text_input, Column,
 };
-use iced::{color, Center, Element, Fill, Task};
+use iced::{color, Center, Element, Fill, Subscription, Task};
 
 use crate::messages::{
-    ConflictChoice, DuplicateChoice, FolderTarget, Message, OperationChoice, ReportData,
-    SortingResult,
+    ConflictChoice, DuplicateChoice, FolderTarget, Message, OperationChoice, ProgressInfo,
+    ReportData, SharedReceiver, SortingResult,
 };
 use crate::settings::Settings;
 
@@ -36,6 +37,12 @@ pub struct App {
     dry_run: bool,
     detect_duplicates: bool,
 
+    // Progress
+    progress_current: usize,
+    progress_total: usize,
+    progress_message: String,
+    progress_rx: Option<SharedReceiver>,
+
     // State
     phase: Phase,
 }
@@ -59,6 +66,10 @@ impl Default for App {
             recursive: settings.recursive,
             dry_run: settings.dry_run,
             detect_duplicates: settings.detect_duplicates,
+            progress_current: 0,
+            progress_total: 0,
+            progress_message: String::new(),
+            progress_rx: None,
             phase: Phase::default(),
         }
     }
@@ -150,13 +161,27 @@ fn update(app: &mut App, message: Message) -> Task<Message> {
 
         Message::StartSorting => {
             app.phase = Phase::Running;
+            app.progress_current = 0;
+            app.progress_total = 0;
+            app.progress_message = "Starting...".to_string();
             return run_sorting(app);
         }
-        Message::SortingComplete(result) => match result {
-            SortingResult::Success(data) => app.phase = Phase::Done(data),
-            SortingResult::Error(msg) => app.phase = Phase::Error(msg),
-        },
-        Message::Reset => app.phase = Phase::Setup,
+        Message::ProgressUpdate(info) => {
+            app.progress_current = info.current;
+            app.progress_total = info.total;
+            app.progress_message = info.message;
+        }
+        Message::SortingComplete(result) => {
+            app.progress_rx = None;
+            match result {
+                SortingResult::Success(data) => app.phase = Phase::Done(data),
+                SortingResult::Error(msg) => app.phase = Phase::Error(msg),
+            }
+        }
+        Message::Reset => {
+            app.phase = Phase::Setup;
+            app.progress_rx = None;
+        }
     }
     Task::none()
 }
@@ -164,7 +189,7 @@ fn update(app: &mut App, message: Message) -> Task<Message> {
 fn view(app: &App) -> Element<'_, Message> {
     let content = match &app.phase {
         Phase::Setup => view_setup(app),
-        Phase::Running => view_running(),
+        Phase::Running => view_running(app),
         Phase::Done(data) => view_report(data),
         Phase::Error(msg) => view_error(msg),
     };
@@ -351,11 +376,27 @@ fn view_options(app: &App) -> Element<'_, Message> {
         .into()
 }
 
-fn view_running<'a>() -> Element<'a, Message> {
+fn view_running(app: &App) -> Element<'_, Message> {
+    #[allow(clippy::cast_precision_loss)]
+    let fraction = if app.progress_total > 0 {
+        app.progress_current as f32 / app.progress_total as f32
+    } else {
+        0.0
+    };
+
+    let status = if app.progress_total > 0 {
+        format!(
+            "{} ({}/{})",
+            app.progress_message, app.progress_current, app.progress_total
+        )
+    } else {
+        app.progress_message.clone()
+    };
+
     column![
         text("Sorting in progress...").size(24),
-        progress_bar(0.0..=1.0, 0.5).width(Fill),
-        text("Please wait while files are being organized.").size(14),
+        progress_bar(0.0..=1.0, fraction).width(Fill),
+        text(status).size(14),
     ]
     .spacing(20)
     .padding(40)
@@ -426,7 +467,7 @@ fn open_folder_dialog(target: FolderTarget) -> Task<Message> {
     )
 }
 
-fn run_sorting(app: &App) -> Task<Message> {
+fn run_sorting(app: &mut App) -> Task<Message> {
     let config = yaps_core::Config {
         source: PathBuf::from(&app.source),
         target: PathBuf::from(&app.target),
@@ -441,11 +482,22 @@ fn run_sorting(app: &App) -> Task<Message> {
         ..yaps_core::Config::default()
     };
 
+    let (progress_tx, progress_rx) = mpsc::channel();
+    app.progress_rx = Some(Arc::new(Mutex::new(progress_rx)));
+
     Task::perform(
         async move {
             let (tx, rx) = tokio::sync::oneshot::channel();
             std::thread::spawn(move || {
-                let result = yaps_core::ops::organizer::Organizer::run(&config, None);
+                let progress_cb: yaps_core::ops::organizer::ProgressCallback =
+                    Box::new(move |current, total, msg| {
+                        let _ = progress_tx.send(ProgressInfo {
+                            current,
+                            total,
+                            message: msg.to_string(),
+                        });
+                    });
+                let result = yaps_core::ops::organizer::Organizer::run(&config, Some(&progress_cb));
                 let _ = tx.send(result);
             });
             rx.await
@@ -469,9 +521,35 @@ fn report_line<'a>(label: &str, value: &str) -> Element<'a, Message> {
     .into()
 }
 
+fn subscription(app: &App) -> Subscription<Message> {
+    if let Some(rx) = &app.progress_rx {
+        let rx = Arc::clone(rx);
+        iced::time::every(std::time::Duration::from_millis(50)).map(move |_| {
+            // Drain all pending progress messages, keep the latest
+            let mut latest = None;
+            if let Ok(guard) = rx.lock() {
+                while let Ok(info) = guard.try_recv() {
+                    latest = Some(info);
+                }
+            }
+            latest.map_or(
+                Message::ProgressUpdate(ProgressInfo {
+                    current: 0,
+                    total: 0,
+                    message: String::new(),
+                }),
+                Message::ProgressUpdate,
+            )
+        })
+    } else {
+        Subscription::none()
+    }
+}
+
 /// Run the iced application.
 pub fn run() -> iced::Result {
     iced::application("YAPS-rs — Photo Sorter", update, view)
+        .subscription(subscription)
         .window_size(iced::Size::new(700.0, 600.0))
         .centered()
         .run()
