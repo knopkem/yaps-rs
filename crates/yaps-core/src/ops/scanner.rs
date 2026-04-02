@@ -66,10 +66,9 @@ impl Scanner {
                 continue;
             }
 
-            if entry.file_type().is_file()
-                && is_supported_file(entry.path()) {
-                    files.push(entry.into_path());
-                }
+            if entry.file_type().is_file() && is_supported_file(entry.path()) {
+                files.push(entry.into_path());
+            }
         }
 
         tracing::info!(

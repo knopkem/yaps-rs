@@ -121,13 +121,10 @@ impl HashStore {
         entries.sort_by_key(|(name, _)| (*name).clone());
 
         for (filename, hash) in entries {
-            writeln!(writer, "{filename},{hash}")
-                .map_err(|e| crate::YapsError::io(&path, e))?;
+            writeln!(writer, "{filename},{hash}").map_err(|e| crate::YapsError::io(&path, e))?;
         }
 
-        writer
-            .flush()
-            .map_err(|e| crate::YapsError::io(&path, e))?;
+        writer.flush().map_err(|e| crate::YapsError::io(&path, e))?;
         self.dirty = false;
 
         Ok(())

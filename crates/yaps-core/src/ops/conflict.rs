@@ -11,10 +11,7 @@ impl ConflictResolver {
     /// Resolve a file conflict according to the chosen strategy.
     ///
     /// Returns the final target path to use, or `None` if the file should be skipped.
-    pub fn resolve(
-        target: &Path,
-        strategy: ConflictStrategy,
-    ) -> crate::Result<Option<PathBuf>> {
+    pub fn resolve(target: &Path, strategy: ConflictStrategy) -> crate::Result<Option<PathBuf>> {
         if !target.exists() {
             return Ok(Some(target.to_path_buf()));
         }
@@ -46,10 +43,7 @@ impl ConflictResolver {
 /// Given `photo.jpg`, tries `photo(1).jpg`, `photo(2).jpg`, etc.
 fn propose_new_filename(path: &Path) -> PathBuf {
     let parent = path.parent().unwrap_or(Path::new(""));
-    let stem = path
-        .file_stem()
-        .and_then(|s| s.to_str())
-        .unwrap_or("file");
+    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
     let ext = path.extension().and_then(|s| s.to_str());
 
     for counter in 1..=10_000 {

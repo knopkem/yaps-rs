@@ -65,8 +65,10 @@ impl ExifMetadata {
     /// Returns the media type derived from the file extension.
     pub fn media_type(&self) -> &str {
         match self.extension.as_deref() {
-            Some("jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "tif" | "webp" | "heic"
-            | "heif" | "avif") => "image",
+            Some(
+                "jpg" | "jpeg" | "png" | "gif" | "bmp" | "tiff" | "tif" | "webp" | "heic" | "heif"
+                | "avif",
+            ) => "image",
             Some("mp4" | "mov" | "avi" | "mkv" | "wmv" | "flv" | "m4v" | "3gp") => "video",
             Some("mp3" | "wav" | "aac" | "flac" | "ogg" | "wma") => "audio",
             _ => "other",

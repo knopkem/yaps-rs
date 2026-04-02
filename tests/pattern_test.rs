@@ -22,8 +22,7 @@ fn default_folder_pattern_with_no_exif() {
 
 #[test]
 fn default_file_pattern_with_no_exif() {
-    let pattern =
-        parse_pattern("{day}-{month_short}-{hour}{minute}{second}-{filename}").unwrap();
+    let pattern = parse_pattern("{day}-{month_short}-{hour}{minute}{second}-{filename}").unwrap();
     let meta = ExifMetadata {
         filename: Some("photo1".to_string()),
         extension: Some("jpg".to_string()),
@@ -156,10 +155,7 @@ fn dimension_tags_resolve() {
 #[test]
 fn invalid_pattern_returns_error() {
     let result = parse_pattern("{nonexistent_tag}");
-    assert!(
-        result.is_err(),
-        "unknown tag should produce an error"
-    );
+    assert!(result.is_err(), "unknown tag should produce an error");
 }
 
 // ───────────────────── Empty pattern ────────────────────────────────────
@@ -171,7 +167,10 @@ fn empty_pattern_produces_empty_string() {
 
     let meta = ExifMetadata::default();
     let result = format_pattern(&pattern, &meta);
-    assert!(result.is_empty(), "empty pattern should produce empty output");
+    assert!(
+        result.is_empty(),
+        "empty pattern should produce empty output"
+    );
 }
 
 // ───────────────────── Media type tag ───────────────────────────────────
@@ -209,5 +208,8 @@ fn pattern_roundtrip_is_deterministic() {
     let r1 = format_pattern(&pattern, &meta);
     let r2 = format_pattern(&pattern, &meta);
 
-    assert_eq!(r1, r2, "formatting the same pattern twice should yield identical results");
+    assert_eq!(
+        r1, r2,
+        "formatting the same pattern twice should yield identical results"
+    );
 }

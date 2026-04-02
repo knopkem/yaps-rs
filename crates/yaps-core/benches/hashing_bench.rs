@@ -13,8 +13,7 @@ fn create_temp_file(size_bytes: usize) -> NamedTempFile {
     let mut remaining = size_bytes;
     while remaining > 0 {
         let to_write = remaining.min(chunk.len());
-        file.write_all(&chunk[..to_write])
-            .expect("write temp data");
+        file.write_all(&chunk[..to_write]).expect("write temp data");
         remaining -= to_write;
     }
     file.flush().expect("flush temp file");
@@ -25,18 +24,22 @@ fn bench_hash_file(c: &mut Criterion) {
     let mut group = c.benchmark_group("blake3_hash_file");
 
     for &size in &[
-        1024,            // 1 KB
-        64 * 1024,       // 64 KB
-        1024 * 1024,     // 1 MB
+        1024,             // 1 KB
+        64 * 1024,        // 64 KB
+        1024 * 1024,      // 1 MB
         10 * 1024 * 1024, // 10 MB
     ] {
         let file = create_temp_file(size);
         let path = file.path().to_path_buf();
 
         group.throughput(Throughput::Bytes(size as u64));
-        group.bench_with_input(BenchmarkId::from_parameter(format_size(size)), &path, |b, p| {
-            b.iter(|| hash_file(p).expect("hash should succeed"));
-        });
+        group.bench_with_input(
+            BenchmarkId::from_parameter(format_size(size)),
+            &path,
+            |b, p| {
+                b.iter(|| hash_file(p).expect("hash should succeed"));
+            },
+        );
     }
 
     group.finish();

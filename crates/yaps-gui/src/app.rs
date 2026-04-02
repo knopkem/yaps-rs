@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use iced::widget::{
-    button, checkbox, column, container, horizontal_rule, pick_list, progress_bar, row,
-    scrollable, text, text_input, Column,
+    button, checkbox, column, container, horizontal_rule, pick_list, progress_bar, row, scrollable,
+    text, text_input, Column,
 };
 use iced::{color, Center, Element, Fill, Task};
 
@@ -169,7 +169,11 @@ fn view(app: &App) -> Element<'_, Message> {
         Phase::Error(msg) => view_error(msg),
     };
 
-    container(content).width(Fill).height(Fill).padding(20).into()
+    container(content)
+        .width(Fill)
+        .height(Fill)
+        .padding(20)
+        .into()
 }
 
 fn view_setup(app: &App) -> Element<'_, Message> {
@@ -253,10 +257,8 @@ fn view_patterns(app: &App) -> Element<'_, Message> {
     .spacing(8)
     .align_y(Center);
 
-    let mut pattern_col: Vec<Element<'_, Message>> = vec![
-        text("Patterns").size(18).into(),
-        folder_pat.into(),
-    ];
+    let mut pattern_col: Vec<Element<'_, Message>> =
+        vec![text("Patterns").size(18).into(), folder_pat.into()];
 
     if !app.folder_errors.is_empty() {
         let msg = format_error_message(&app.folder_errors, &app.folder_pattern);
@@ -453,17 +455,18 @@ fn run_sorting(app: &App) -> Task<Message> {
                 Message::SortingComplete(SortingResult::Success(ReportData::from(&report)))
             }
             Ok(Err(e)) => Message::SortingComplete(SortingResult::Error(e.to_string())),
-            Err(e) => {
-                Message::SortingComplete(SortingResult::Error(format!("Task error: {e}")))
-            }
+            Err(e) => Message::SortingComplete(SortingResult::Error(format!("Task error: {e}"))),
         },
     )
 }
 
 fn report_line<'a>(label: &str, value: &str) -> Element<'a, Message> {
-    row![text(format!("{label}:")).width(120), text(value.to_string()),]
-        .spacing(8)
-        .into()
+    row![
+        text(format!("{label}:")).width(120),
+        text(value.to_string()),
+    ]
+    .spacing(8)
+    .into()
 }
 
 /// Run the iced application.

@@ -165,10 +165,7 @@ fn report_records_elapsed_time() {
 
     let report = Organizer::run(&config, None).unwrap();
 
-    assert!(
-        !report.elapsed.is_zero(),
-        "elapsed time should be non-zero"
-    );
+    assert!(!report.elapsed.is_zero(), "elapsed time should be non-zero");
 }
 
 // ───────────────────────── Empty source directory ───────────────────────

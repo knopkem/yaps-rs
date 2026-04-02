@@ -208,7 +208,10 @@ mod tests {
     #[test]
     fn test_all_tags_have_descriptions() {
         for tag in ALL_TAGS {
-            assert!(!tag.description().is_empty(), "Missing description for {tag:?}");
+            assert!(
+                !tag.description().is_empty(),
+                "Missing description for {tag:?}"
+            );
         }
     }
 }

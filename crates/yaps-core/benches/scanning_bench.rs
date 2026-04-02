@@ -38,13 +38,9 @@ fn bench_scan_flat(c: &mut Criterion) {
             fs::write(dir.path().join(name), b"x").unwrap();
         }
 
-        group.bench_with_input(
-            BenchmarkId::from_parameter(file_count),
-            &dir,
-            |b, d| {
-                b.iter(|| Scanner::scan(d.path(), false).expect("scan"));
-            },
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(file_count), &dir, |b, d| {
+            b.iter(|| Scanner::scan(d.path(), false).expect("scan"));
+        });
     }
 
     group.finish();

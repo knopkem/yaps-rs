@@ -67,8 +67,10 @@ impl ExifReader {
         meta.orientation = get_u16_field(&exif, exif::Tag::Orientation);
 
         // GPS
-        meta.gps_latitude = get_gps_coordinate(&exif, exif::Tag::GPSLatitude, exif::Tag::GPSLatitudeRef);
-        meta.gps_longitude = get_gps_coordinate(&exif, exif::Tag::GPSLongitude, exif::Tag::GPSLongitudeRef);
+        meta.gps_latitude =
+            get_gps_coordinate(&exif, exif::Tag::GPSLatitude, exif::Tag::GPSLatitudeRef);
+        meta.gps_longitude =
+            get_gps_coordinate(&exif, exif::Tag::GPSLongitude, exif::Tag::GPSLongitudeRef);
         if let Some(field) = exif.get_field(exif::Tag::GPSAltitude, exif::In::PRIMARY) {
             meta.gps_altitude = rational_to_f64(&field.value);
         }
@@ -144,11 +146,7 @@ fn get_exposure_display(exif: &exif::Exif) -> Option<String> {
 }
 
 /// Parse GPS coordinates from EXIF rational values + reference direction.
-fn get_gps_coordinate(
-    exif: &exif::Exif,
-    coord_tag: exif::Tag,
-    ref_tag: exif::Tag,
-) -> Option<f64> {
+fn get_gps_coordinate(exif: &exif::Exif, coord_tag: exif::Tag, ref_tag: exif::Tag) -> Option<f64> {
     let field = exif.get_field(coord_tag, exif::In::PRIMARY)?;
     let rationals = match &field.value {
         exif::Value::Rational(v) if v.len() >= 3 => v,

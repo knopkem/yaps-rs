@@ -56,7 +56,14 @@ impl Organizer {
 
         let metadata = Self::extract_metadata(&files, progress, report.files_total);
         Self::count_exif_stats(&metadata, &mut report);
-        Self::organize_files(config, &metadata, &folder_pattern, &file_pattern, progress, &mut report)?;
+        Self::organize_files(
+            config,
+            &metadata,
+            &folder_pattern,
+            &file_pattern,
+            progress,
+            &mut report,
+        )?;
 
         report.elapsed = start.elapsed();
         Ok(report)
@@ -155,9 +162,8 @@ impl Organizer {
                 continue;
             };
 
-            let (target_folder, target_filename) = Self::compute_target(
-                meta, source_path, config, folder_pattern, file_pattern,
-            );
+            let (target_folder, target_filename) =
+                Self::compute_target(meta, source_path, config, folder_pattern, file_pattern);
 
             let full_target_dir = config.target.join(&target_folder);
             let full_target = full_target_dir.join(&target_filename);
@@ -165,8 +171,13 @@ impl Organizer {
             // Duplicate detection
             if config.detect_duplicates && meta.has_date() {
                 let should_continue = Self::handle_duplicates(
-                    config, source_path, &full_target_dir, &target_folder,
-                    &target_filename, &mut hash_stores, report,
+                    config,
+                    source_path,
+                    &full_target_dir,
+                    &target_folder,
+                    &target_filename,
+                    &mut hash_stores,
+                    report,
                 );
                 if should_continue {
                     continue;
@@ -174,9 +185,9 @@ impl Organizer {
             }
 
             // Conflict resolution
-            let Some(final_target) = ConflictResolver::resolve(
-                &full_target, config.conflict_strategy,
-            )? else {
+            let Some(final_target) =
+                ConflictResolver::resolve(&full_target, config.conflict_strategy)?
+            else {
                 report.conflicts += 1;
                 report.files_skipped += 1;
                 continue;
@@ -376,7 +387,10 @@ mod tests {
 
         // File should be in [NoExifData] folder
         let no_exif_dir = target.path().join("[NoExifData]");
-        assert!(no_exif_dir.exists(), "[NoExifData] folder should be created");
+        assert!(
+            no_exif_dir.exists(),
+            "[NoExifData] folder should be created"
+        );
     }
 
     #[test]
@@ -416,7 +430,10 @@ mod tests {
 
         let report = Organizer::run(&config, Some(&progress)).unwrap();
         assert_eq!(report.files_total, 1);
-        assert!(call_count.load(Ordering::Relaxed) > 0, "Progress callback should be called");
+        assert!(
+            call_count.load(Ordering::Relaxed) > 0,
+            "Progress callback should be called"
+        );
     }
 
     #[test]
@@ -437,7 +454,10 @@ mod tests {
 
         let report = Organizer::run(&config, None).unwrap();
         assert_eq!(report.files_processed, 1);
-        assert!(!src_file.exists(), "Source file should be removed after move");
+        assert!(
+            !src_file.exists(),
+            "Source file should be removed after move"
+        );
     }
 
     #[test]

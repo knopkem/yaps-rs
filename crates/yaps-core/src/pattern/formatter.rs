@@ -54,33 +54,50 @@ fn resolve_tag(tag: PatternTag, meta: &ExifMetadata) -> String {
         PatternTag::Week => format_dt(meta, |dt| format!("{:02}", dt.iso_week().week())),
 
         // Camera info
-        PatternTag::Make => meta.camera_make.clone().unwrap_or_else(|| "unknown".to_string()),
-        PatternTag::Model => meta.camera_model.clone().unwrap_or_else(|| "unknown".to_string()),
-        PatternTag::Lens => meta.lens_model.clone().unwrap_or_else(|| "unknown".to_string()),
+        PatternTag::Make => meta
+            .camera_make
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
+        PatternTag::Model => meta
+            .camera_model
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
+        PatternTag::Lens => meta
+            .lens_model
+            .clone()
+            .unwrap_or_else(|| "unknown".to_string()),
 
         // Exposure
         PatternTag::Iso => meta
-            .iso.map_or_else(|| "unknown".to_string(), |v| v.to_string()),
+            .iso
+            .map_or_else(|| "unknown".to_string(), |v| v.to_string()),
         PatternTag::Aperture => meta
-            .aperture.map_or_else(|| "unknown".to_string(), |v| format!("f{v:.1}")),
+            .aperture
+            .map_or_else(|| "unknown".to_string(), |v| format!("f{v:.1}")),
         PatternTag::Shutter => meta
             .exposure_time_display
-            .clone().map_or_else(|| "unknown".to_string(), |s| s.replace('/', "-")),
+            .clone()
+            .map_or_else(|| "unknown".to_string(), |s| s.replace('/', "-")),
         PatternTag::Focal => meta
-            .focal_length.map_or_else(|| "unknown".to_string(), |v| format!("{v:.0}mm")),
+            .focal_length
+            .map_or_else(|| "unknown".to_string(), |v| format!("{v:.0}mm")),
 
         // Dimensions
         PatternTag::Width => meta
-            .width.map_or_else(|| "unknown".to_string(), |v| v.to_string()),
+            .width
+            .map_or_else(|| "unknown".to_string(), |v| v.to_string()),
         PatternTag::Height => meta
-            .height.map_or_else(|| "unknown".to_string(), |v| v.to_string()),
+            .height
+            .map_or_else(|| "unknown".to_string(), |v| v.to_string()),
         PatternTag::Orientation => meta.orientation_label().to_string(),
 
         // GPS
         PatternTag::GpsLat => meta
-            .gps_latitude.map_or_else(|| "unknown".to_string(), |v| format!("{v:.6}")),
+            .gps_latitude
+            .map_or_else(|| "unknown".to_string(), |v| format!("{v:.6}")),
         PatternTag::GpsLon => meta
-            .gps_longitude.map_or_else(|| "unknown".to_string(), |v| format!("{v:.6}")),
+            .gps_longitude
+            .map_or_else(|| "unknown".to_string(), |v| format!("{v:.6}")),
 
         // Media info
         PatternTag::MediaType => meta.media_type().to_string(),
@@ -100,7 +117,8 @@ fn resolve_tag(tag: PatternTag, meta: &ExifMetadata) -> String {
 /// Helper: format a datetime-dependent tag, falling back to "unknown".
 fn format_dt(meta: &ExifMetadata, f: impl FnOnce(&NaiveDateTime) -> String) -> String {
     meta.date_time_original
-        .as_ref().map_or_else(|| "unknown".to_string(), f)
+        .as_ref()
+        .map_or_else(|| "unknown".to_string(), f)
 }
 
 fn short_month_name(month: u32) -> String {

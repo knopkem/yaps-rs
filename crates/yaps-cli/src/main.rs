@@ -27,7 +27,10 @@ struct Cli {
     folder_pattern: String,
 
     /// Filename pattern using {tag} placeholders.
-    #[arg(long, default_value = "{day}-{month_short}-{hour}{minute}{second}-{filename}")]
+    #[arg(
+        long,
+        default_value = "{day}-{month_short}-{hour}{minute}{second}-{filename}"
+    )]
     file_pattern: String,
 
     /// File operation mode.
@@ -131,14 +134,8 @@ fn main() -> Result<()> {
         println!("🔍 DRY RUN — no files will be modified\n");
     }
 
-    println!(
-        "📁 Source:  {}",
-        config.source.display()
-    );
-    println!(
-        "📂 Target:  {}",
-        config.target.display()
-    );
+    println!("📁 Source:  {}", config.source.display());
+    println!("📂 Target:  {}", config.target.display());
     println!(
         "📋 Pattern: {}/{}",
         config.folder_pattern, config.file_pattern
@@ -155,8 +152,8 @@ fn main() -> Result<()> {
             }
         });
 
-    let report = Organizer::run(&config, Some(&progress))
-        .context("Photo sorting operation failed")?;
+    let report =
+        Organizer::run(&config, Some(&progress)).context("Photo sorting operation failed")?;
 
     // Clear progress line
     eprintln!();

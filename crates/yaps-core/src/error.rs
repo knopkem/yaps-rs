@@ -127,9 +127,6 @@ mod tests {
     #[test]
     fn test_config_error_display() {
         let err = YapsError::Config("missing source field".to_string());
-        assert_eq!(
-            err.to_string(),
-            "configuration error: missing source field"
-        );
+        assert_eq!(err.to_string(), "configuration error: missing source field");
     }
 }

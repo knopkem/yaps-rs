@@ -13,14 +13,10 @@ use yaps_core::Config;
 use common::count_files_recursive;
 
 /// Minimal JPEG bytes used throughout these tests.
-const JPEG_BYTES_A: &[u8] = &[
-    0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x02, 0x00, 0x00, 0xFF, 0xD9,
-];
+const JPEG_BYTES_A: &[u8] = &[0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x02, 0x00, 0x00, 0xFF, 0xD9];
 
 /// Different JPEG bytes (distinct content).
-const JPEG_BYTES_B: &[u8] = &[
-    0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x02, 0x01, 0x01, 0xFF, 0xD9,
-];
+const JPEG_BYTES_B: &[u8] = &[0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x02, 0x01, 0x01, 0xFF, 0xD9];
 
 fn base_config(source: &Path, target: &Path) -> Config {
     Config {
@@ -68,7 +64,10 @@ fn hash_store_detects_duplicate_on_insert() {
     assert!(!is_dup_first, "first insert should not be a duplicate");
 
     let is_dup_second = store.insert("b.jpg".into(), "abc123".into());
-    assert!(is_dup_second, "second insert with same hash should be a duplicate");
+    assert!(
+        is_dup_second,
+        "second insert with same hash should be a duplicate"
+    );
 }
 
 #[test]
@@ -89,7 +88,10 @@ fn hash_store_different_hashes_not_duplicate() {
     store.insert("a.jpg".into(), "hash_aaa".into());
     let is_dup = store.insert("b.jpg".into(), "hash_bbb".into());
 
-    assert!(!is_dup, "different hashes should not be detected as duplicate");
+    assert!(
+        !is_dup,
+        "different hashes should not be detected as duplicate"
+    );
 }
 
 // ──────────────── HashStore persistence via save/load ────────────────────

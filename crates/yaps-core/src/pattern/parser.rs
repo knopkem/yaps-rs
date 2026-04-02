@@ -261,15 +261,14 @@ mod tests {
     #[test]
     fn test_parse_tag_only() {
         let p = parse_pattern("{filename}").unwrap();
-        assert_eq!(
-            p.segments,
-            vec![PatternSegment::Tag(PatternTag::Filename)]
-        );
+        assert_eq!(p.segments, vec![PatternSegment::Tag(PatternTag::Filename)]);
     }
 
     #[test]
     fn test_parse_complex_pattern() {
-        let p = parse_pattern("{year}/{month}-{month_long}/{day}-{hour}{minute}{second}-{filename}").unwrap();
+        let p =
+            parse_pattern("{year}/{month}-{month_long}/{day}-{hour}{minute}{second}-{filename}")
+                .unwrap();
         assert_eq!(p.segments.len(), 13);
     }
 
@@ -319,10 +318,7 @@ mod tests {
     #[test]
     fn test_parse_whitespace_in_tag_name_is_trimmed() {
         let p = parse_pattern("{ year }").unwrap();
-        assert_eq!(
-            p.segments,
-            vec![PatternSegment::Tag(PatternTag::Year)]
-        );
+        assert_eq!(p.segments, vec![PatternSegment::Tag(PatternTag::Year)]);
     }
 
     #[test]
